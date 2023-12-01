@@ -1,38 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Forum_page</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forum_page</title>
 </head>
+
 <body>
-<section class="forum-section">
-  <h3>Forum</h3>
+  <section class="forum-section">
+    <h3>Forum</h3>
     <!-- Form create new post -->
-  <form class="new-post-form" id="new-post-form" action="/addpost" method="post">
-    <input type="text" name="heading" placeholder="Title" required>
-    <textarea name="body" placeholder="Content" required></textarea>
-    <button type="submit">Add Post</button>
-  </form>
+    <form class="new-post-form" id="new-post-form" action="/addpost" method="post">
+      <input type="text" name="heading" placeholder="Title" required />
+      <textarea name="body" placeholder="Content" required></textarea>
+      <button type="submit">Add Post</button>
+    </form>
 
-   <!-- Display all posts  -->
-  <div id="post-container"></div>
+    <!-- Display all posts  -->
+    <div id="post-container"></div>
   </section>
-
 
   <script>
     // redirect to the view post page
     function viewPost(postId) {
       window.location.href = `/viewpost/${postId}`;
     }
-    
-    document.addEventListener("DOMContentLoaded", function() {
-    // Fetch posts and render on page forum
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // Fetch posts and render on page forum
       fetch("/getposts")
-        .then(response =>  response.json())
-        .then(posts => {
+        .then((response) => response.json())
+        .then((posts) => {
           const postsContainer = document.getElementById("post-container");
-          posts.forEach(post => {
+          posts.forEach((post) => {
             const postElement = document.createElement("div");
             postElement.innerHTML = `
             <strong>${post.heading}</strong><br>
@@ -46,7 +47,8 @@
             postsContainer.appendChild(postElement);
           });
         });
-      });
-    </script>
-  </body>
+    });
+  </script>
+</body>
+
 </html>

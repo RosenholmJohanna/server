@@ -1,12 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>view_post_page</title>
-</head>
-<body>
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>view_post_page</title>
+</head>
+
+<body>
+  <section class="forum-section">
+    <h3>Create comment</h3>
+    <!-- Error before due typo at "placeholder" name. -->
+    <form class="add-comment-form" id="add-comment-form" action="/addcomment" method="post">
+      <input type="hidden" id="post_id" name="post_id" value="${post.post_id}">
+      <textarea id="comment" name="comment" placeholder="Add a comment" required></textarea>
+      <button type="submit" onclick="addComment()">Add Comment</button>
+    </form>
+
+    <h3>View Post</h3>
+    <div id="specific-post-container">
+      <!-- POSTS -->
+    </div>
+
+    <div id="comments-container">
+      <!-- COMMENTS -->
+    </div>
+  </section>
+
+  <script>
+    // ADD COMMENT TO POST 
+    function addComment() {
+      // const post_id = document.getElementById("post_id").value
+      // const comment = document.getElementById("comment").value;
+      const post_id = window.location.pathname.split("/")[2];
+      console.log(typeof post_id)
+      const comment = document.getElementById("comment").value;
+
+      console.log("add comment post id", post_id);
+
+      fetch("/addcomment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ post_id, comment }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+            //window.location.pathname.reload()
+          }
+        })
+        .catch(error => {
+          console.error('Error adding comment:', error);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const post_id = parseInt(window.location.pathname.split("/")[2]);
+      //const postId = parseInt(window.location.pathname.slice("/")[-2]);
+
+      fetch(`/getpost/${post_id}`)
+        .then(response => response.json())
+        .then(post => {
+          const specificPostContainer = document.getElementById("specific-post-container");
+          const postElement = document.createElement("div");
+          postElement.innerHTML = `
+            <strong>${post.heading}</strong><br>
+            ${post.body}<br>
+            Created at: ${new Date(post.created_at).toLocaleString()}<br>
+            <h4>Comments:</h4>
+          `;
+          specificPostContainer.appendChild(postElement);
+
+          // comments !empty ? && write out
+          const commentsContainer = document.getElementById("comments-container");
+          if (post.comments && post.comments.length > 0) {
+            post.comments.forEach(comment => {
+              const commentElement = document.createElement("div");
+              commentElement.innerHTML = `
+                ${comment.comment}<br>
+                Created at: ${new Date(comment.created_at).toLocaleString()}<br>
+              `;
+              commentsContainer.appendChild(commentElement);
+            });
+          } else {
+            commentsContainer.innerHTML = 'No comments yet...';
+          }
+        });
+    });
+  </script>
 
 </body>
 </html>
