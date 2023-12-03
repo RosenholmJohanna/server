@@ -5,17 +5,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Forum_page</title>
+<link rel="stylesheet" type="text/css" href="/styles.css">
+
 </head>
 
 <body>
   <section class="forum-section">
-    <h3>Forum</h3>
+    <h3>Welcomne to Forum</h3>
     <!-- Form create new post -->
     <form class="new-post-form" id="new-post-form" action="/addpost" method="post">
       <input type="text" name="heading" placeholder="Title" required />
       <textarea name="body" placeholder="Content" required></textarea>
-      <button type="submit">Add Post</button>
+      <button type="submit">Create Post</button>
     </form>
+    <hr>
 
     <!-- Display all posts  -->
     <div id="post-container"></div>
@@ -41,7 +44,7 @@
               Created at: ${new Date(post.created_at).toLocaleString()}<br>
 
               <!-- Button view the full post, but does not work for now -->
-              <button onclick="viewPost(${post.post_id})">View Post</button>
+              <button onclick="viewPost(${post.post_id})">Read more</button>
               <hr>
             `;
             postsContainer.appendChild(postElement);

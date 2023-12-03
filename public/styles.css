@@ -1,0 +1,55 @@
+body{
+    background-color: #3d5872;
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+}
+
+h3 {
+    font-family: 'Courier New', Courier, monospace;
+    font-variant-caps: titling-caps; 
+    font-weight:bold;
+    font-size: 18px;
+    letter-spacing:  1px;
+}
+
+label {
+    font-variant-caps: titling-caps;
+    letter-spacing:  1px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 5%;
+}
+
+ input, textarea {
+    font-family: 'Courier New', Courier, monospace;
+    border-style: none;
+    border: 2px solid white;
+    padding: 1.5%;
+    border-radius: 5px;
+    margin-right:  1%;
+    background-color: #cebfb6;
+    font-weight: bold;
+    width: 60%;
+    margin-top: 2%;
+}
+
+button{
+    color: #3d5872;
+    background-color: #cebfb6;
+    border-style: none;
+    border-radius:  25px;
+    padding: 0.75%;
+    width: 20%;
+    margin-top:  2%;
+    border: 1px solid white;
+    font-family: 'Courier New', Courier, monospace;
+    font-variant-caps: titling-caps;
+    font-weight:bold;
+    font-size: 12px;
+    letter-spacing:  1px;
+}
+

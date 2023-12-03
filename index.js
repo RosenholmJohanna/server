@@ -1,4 +1,5 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const app = express();
 const port = 8080;
 const mysql = require("mysql");
@@ -6,19 +7,13 @@ const fs = require("fs");
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use(bodyParser.json());
+
 
 const httpServer = app.listen(port, function () {
   console.log(`Web server is running on port ${port}`);
 });
 
-// Skickar till klient sida med formulär för loggin
-app.get("/", function (req, res) {
-  res.sendFile(__dirname + "/login.html");
-});
-
-app.get("/userlogin", (req, res) => {
-  res.sendFile(__dirname + "/userlogin.html");
-});
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -34,14 +29,28 @@ db.connect((err) => {
   console.log("Connected to the database!");
 });
 
+// app.get("/styles.css", (req, res) => {
+//   // Sending styles.css
+//   res.sendFile(path.join(__dirname, "public", "style.css"));
+// });
+
+// Skickar till klient sida med formulär för loggin
+app.get("/", function (req, res) {
+  res.sendFile(__dirname + "/login.html");
+});
+
+app.get("/userlogin", (req, res) => {
+  res.sendFile(__dirname + "/userlogin.html");
+});
+
 // loggin already a user
 app.post("/userlogin", function (req, res) {
   db.connect(function (err) {
 
     let sql = `
       SELECT name, username, password, email FROM users
-      WHERE name = '
-      ${req.body.name}' AND username = '${req.body.username}' AND password = '${req.body.password}' AND email = '${req.body.email}' `;
+      WHERE name = 
+      '${req.body.name}' AND username = '${req.body.username}' AND password = '${req.body.password}' AND email = '${req.body.email}' `;
     //console.log(sql);
 
     db.query(sql, function (err, result) {
@@ -109,7 +118,6 @@ app.get("/getposts", (req, res) => {
 
 // Add new post
 app.post("/addpost", (req, res) => {
-  //const { heading, body } = req.body;
 
   let sql = `INSERT INTO posts (heading, body)
   VALUES ('${req.body.heading}', '${req.body.body}')`
@@ -121,6 +129,37 @@ app.post("/addpost", (req, res) => {
       return;
     }
     res.redirect("/forum");
+  });
+});
+
+
+//get post as json, fetch in client
+app.get("/getpost/:postId", (req, res) => {
+  const postId = req.params.postId;
+
+  let postSql =
+    "SELECT * FROM posts WHERE post_id = ?";
+
+  let commentsSql =
+    "SELECT * FROM comments WHERE post_id = ?";
+
+  db.query(postSql, [postId], (err, posts) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("Server Error, getpost");
+      return;
+    }
+
+    db.query(commentsSql, [postId], (err, comments) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Server Error, getpost");
+        return;
+      }
+      const post = posts[0];
+      post.comments = comments;
+      res.json(post);
+    });
   });
 });
 
@@ -158,33 +197,27 @@ app.get("/viewpost/:postId", (req, res) => {
   });
 });
 
+// add comment - works!
+// error solved send-->json
+app.post("/addcomment", (req, res) => {
+  try {
+    const { post_id, comment } = req.body;
 
-//get post as json, fetch in client
-app.get("/getpost/:postId", (req, res) => {
-  const postId = req.params.postId;
+    const sql = `
+    INSERT INTO comments (post_id, comment)
+    VALUES ('${req.body.post_id}', '${req.body.comment}')`
 
-  let postSql =
-    "SELECT * FROM posts WHERE post_id = ?";
-
-  let commentsSql =
-    "SELECT * FROM comments WHERE post_id = ?";
-
-  db.query(postSql, [postId], (err, posts) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send("Server Error, getpost");
-      return;
-    }
-
-    db.query(commentsSql, [postId], (err, comments) => {
+    db.query(sql, [post_id, comment], (err, result, fields) => {
       if (err) {
-        console.error(err);
-        res.status(500).send("Server Error, getpost");
+        //console.error("SQL error:", sql, err);
+        res.status(500).json({ sucess:"Server Error 1"});
         return;
       }
-      const post = posts[0];
-      post.comments = comments;
-      res.json(post);
+      res.json({ success: true });
+     
     });
-  });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({sucess:"Server Error 2"});
+  }
 });
