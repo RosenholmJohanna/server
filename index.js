@@ -3,7 +3,9 @@ const bodyParser = require("body-parser");
 const app = express();
 const port = 8080;
 const mysql = require("mysql");
+const listEndpoints = require("express-list-endpoints")
 const fs = require("fs");
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -33,6 +35,12 @@ db.connect((err) => {
 //   // Sending styles.css
 //   res.sendFile(path.join(__dirname, "public", "style.css"));
 // });
+
+
+//display available endpoints, "documentations"
+app.get("/endpoints", (req, res) => {
+  res.send(listEndpoints(app))
+});
 
 // Skickar till klient sida med formulär för loggin
 app.get("/", function (req, res) {
