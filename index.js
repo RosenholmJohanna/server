@@ -10,7 +10,15 @@ const fs = require("fs");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(bodyParser.json());
+app.use(express.json())
 
+
+const crypto = require("crypto"); 
+function hash(data) {
+  const hash = crypto.createHash("sha256");
+  hash.update(data);
+  return hash.digest("hex");
+}
 
 const httpServer = app.listen(port, function () {
   console.log(`Web server is running on port ${port}`);
@@ -22,6 +30,7 @@ const db = mysql.createConnection({
   user: "root",
   password: "",
   database: "jensen2023",
+  multipleStatements: true, 
 });
 
 db.connect((err) => {
@@ -35,6 +44,7 @@ db.connect((err) => {
 //   // Sending styles.css
 //   res.sendFile(path.join(__dirname, "public", "style.css"));
 // });
+
 
 
 //display available endpoints, "documentations"
@@ -77,14 +87,13 @@ app.post("/userlogin", function (req, res) {
   });
 });
 
-//loggin new user
+//loggin - create new user
 app.post("/", function (req, res) {
   db.connect(function (err) {
 
     let sql = `
       INSERT INTO users (name, username, password, email)
       VALUES ('${req.body.name}', '${req.body.username}', '${req.body.password}', '${req.body.email}')`;
-    //console.log(sql);
 
     db.query(sql, function (err, result) {
       if (err) {
@@ -96,6 +105,21 @@ app.post("/", function (req, res) {
     });
   });
 });
+
+
+// GET USERS
+app.get("/getusers", (req, res) => {
+  const sql = "SELECT * FROM users";
+  db.query(sql, (err, users) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("Server Error get all posts");
+      return;
+    }
+    res.json(users);
+  });
+});
+
 
 // Display all posts at forum
 app.get("/forum", (req, res) => {
@@ -170,6 +194,42 @@ app.get("/getpost/:postId", (req, res) => {
     });
   });
 });
+
+
+// DELETE POST
+  app.delete("/getpost/:id/delete", (req, res) => {
+    const { id } = req.params;
+    try {
+      let sql = "DELETE FROM posts WHERE post_id = ?";
+  
+      db.query(sql, [id], (err, result) => {
+        if (err) {
+          res.status(500).json({
+            success: false,
+            response: "Could not delete post",
+            error: err.message,
+          });
+        } else if (result.affectedRows > 0) {
+          res.status(200).json({
+            success: true,
+            response: `Post with ID ${id} deleted successfully`,
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            response: `Post with ID ${id} not found in the database`,
+          });
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        response: "Internal server error",
+        error: error.message,
+      });
+    }
+  });
+  
 
 //go to specific post and comments - client
 app.get("/viewpost/:postId", (req, res) => {

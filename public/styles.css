@@ -53,3 +53,13 @@ button{
     letter-spacing:  1px;
 }
 
+a {
+    color: white;
+    font-size: 16px;
+}
+
+#go-back-btn{
+    background-color: #3d5872;
+    color: white;
+    border-radius: 2%;
+}
