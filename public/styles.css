@@ -18,6 +18,14 @@ label {
     letter-spacing:  1px;
 }
 
+div {
+    margin-bottom: 5%;
+}
+
+strong {
+    font-size: larger;
+}
+
 form {
     display: flex;
     flex-direction: column;

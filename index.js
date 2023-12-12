@@ -5,32 +5,23 @@ const port = 8080;
 const mysql = require("mysql");
 const listEndpoints = require("express-list-endpoints")
 const fs = require("fs");
-
+const jwt = require("jsonwebtoken");
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(express.json())
 
-
-const crypto = require("crypto"); 
-function hash(data) {
-  const hash = crypto.createHash("sha256");
-  hash.update(data);
-  return hash.digest("hex");
-}
-
 const httpServer = app.listen(port, function () {
   console.log(`Web server is running on port ${port}`);
 });
-
 
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "",
-  database: "jensen2023",
-  multipleStatements: true, 
+  database: "forum",
+  multipleStatements: true,
 });
 
 db.connect((err) => {
@@ -40,88 +31,191 @@ db.connect((err) => {
   console.log("Connected to the database!");
 });
 
-// app.get("/styles.css", (req, res) => {
-//   // Sending styles.css
-//   res.sendFile(path.join(__dirname, "public", "style.css"));
-// });
+
+const crypto = require("crypto");
+function hash(data) {
+  const hash = crypto.createHash("sha256");
+  hash.update(data);
+  return hash.digest("hex");
+}
 
 
 
-//display available endpoints, "documentations"
 app.get("/endpoints", (req, res) => {
   res.send(listEndpoints(app))
 });
 
-// Skickar till klient sida med formulär för loggin
-app.get("/", function (req, res) {
+
+app.get("/login-new-user", function (req, res) {
   res.sendFile(__dirname + "/login.html");
 });
 
-app.get("/userlogin", (req, res) => {
+app.get("/login", (req, res) => {
   res.sendFile(__dirname + "/userlogin.html");
 });
 
-// loggin already a user
-app.post("/userlogin", function (req, res) {
-  db.connect(function (err) {
 
-    let sql = `
-      SELECT name, username, password, email FROM users
-      WHERE name = 
-      '${req.body.name}' AND username = '${req.body.username}' AND password = '${req.body.password}' AND email = '${req.body.email}' `;
-    //console.log(sql);
-
-    db.query(sql, function (err, result) {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Server Error at loggin");
-        return;
-      }
-
-      if (result.length > 0) {
-        res.redirect("/forum");
-      } else {
-        res.status(401).send("Invalid credentials");
-      }
+// LOGIN NEW USER --> hash password
+app.post("/login-new-user", function (req, res) {
+  if (!(req.body && req.body.username && req.body.password && req.body.name)) {
+    res.status(400).send({
+      success: false,
+      error: "Name, username & password is required!"
     });
-  });
-});
+    return;
+  }
 
-//loggin - create new user
-app.post("/", function (req, res) {
-  db.connect(function (err) {
-
-    let sql = `
-      INSERT INTO users (name, username, password, email)
-      VALUES ('${req.body.name}', '${req.body.username}', '${req.body.password}', '${req.body.email}')`;
-
-    db.query(sql, function (err, result) {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Server Error at loggin");
-        return;
-      }
-      res.redirect("/forum");
-    });
-  });
-});
-
-
-// GET USERS
-app.get("/getusers", (req, res) => {
-  const sql = "SELECT * FROM users";
-  db.query(sql, (err, users) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send("Server Error get all posts");
+  let fields = ["name", "password", "username"];
+  for (let key in req.body) {
+    if (!fields.includes(key)) {
+      res.status(400).send({
+        success: false,
+        error: "Unknown field: " + key
+      });
       return;
     }
-    res.json(users);
+  }
+
+  let sql = `
+    INSERT INTO users (username, name, password)
+    VALUES ('${req.body.username}', '${req.body.name}', '${hash(req.body.password)}');
+    SELECT LAST_INSERT_ID();`;
+
+  console.log(sql);
+
+  db.query(sql, function (err, result, fields) {
+    if (err) {
+      console.error(err);
+      res.status(500).json({
+        success: false,
+        error: "Server Error"
+      });
+      return;
+    }
+
+    res.redirect("/forum");
+    // res.status(200).json({ success: true, data: output });
   });
 });
 
 
-// Display all posts at forum
+// LOGIN EXISTING USER ---> hash password
+app.post("/login", function (req, res) {
+  if (!(req.body && req.body.username && req.body.password && req.body.name)) {
+    res.status(400).json({
+      success: false,
+      message: "Bad Request: Missing credentials"
+    });
+    return;
+  }
+
+  let sql = `
+  SELECT * FROM users WHERE username='${req.body.username}'`;
+
+  db.query(sql, function (err, result, fields) {
+    if (err) {
+      console.error(err);
+      res.status(500).json({
+        success: false, error: "Server Error"
+      });
+      return;
+    }
+
+    if (result.length > 0) {
+      let passwordHash = hash(req.body.password);
+      if (result[0].password == passwordHash) {
+        let payload = {
+          sub: result[0].username,
+          name: result[0].name,
+        };
+
+        let token = jwt.sign(payload, "EnHemlighetSomIngenKanGissaXyz123%&/");
+
+        //  token in a cookie
+        res.cookie('token', token);
+        res.redirect("/forum");
+      } else {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized: wrong credentials"
+        });
+      }
+    } else {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found"
+      });
+    }
+  });
+});
+
+// GET USERS
+app.get("/users", function (req, res) {
+  let authHeader = req.headers["authorization"];
+  if (authHeader === undefined) {
+
+    res.sendStatus(400);
+    return;
+  }
+  let token = authHeader.slice(7);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, "EnHemlighetSomIngenKanGissaXyz123%&/");
+  } catch (err) {
+    console.log(err);
+    res.status(401).send("Invalid auth token");
+    return;
+  }
+
+  let sql = "SELECT * FROM users";
+  console.log(sql);
+
+  db.query(sql, function (err, result, fields) {
+    res.send(result);
+  });
+});
+
+
+
+// GET USER BY ID
+app.get("/users/:id", function (req, res) {
+  let authHeader = req.headers["authorization"];
+  if (authHeader === undefined) {
+    res.sendStatus(400);
+    return;
+  }
+  let token = authHeader.slice(7);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, "EnHemlighetSomIngenKanGissaXyz123%&/");
+  } catch (err) {
+    console.log(err);
+    res.status(401).send("Invalid auth token");
+    return;
+  }
+  // Get the user ID from the request parameters
+  const userId = req.params.id;
+
+  let sql = `SELECT * FROM users WHERE user_id = ?`;
+  db.query(sql, [userId], function (err, result, fields) {
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+      return;
+    }
+
+    if (result.length === 0) {
+      res.sendStatus(404);
+      return;
+    }
+    res.send(result[0]);
+  });
+});
+
+
+//Display all posts at forum
 app.get("/forum", (req, res) => {
   const sql = "SELECT * FROM posts";
 
@@ -134,6 +228,8 @@ app.get("/forum", (req, res) => {
     res.sendFile(__dirname + "/forum.html", { posts });
   });
 });
+
+
 
 // Get all posts as json to fetch
 app.get("/getposts", (req, res) => {
@@ -148,11 +244,13 @@ app.get("/getposts", (req, res) => {
   });
 });
 
+
 // Add new post
 app.post("/addpost", (req, res) => {
+  const { heading, body, author } = req.body;
 
-  let sql = `INSERT INTO posts (heading, body)
-  VALUES ('${req.body.heading}', '${req.body.body}')`
+  let sql = `INSERT INTO posts (heading, body, author)
+             VALUES ('${heading}', '${body}', '${author}')`;
 
   db.query(sql, (err, result) => {
     if (err) {
@@ -163,6 +261,7 @@ app.post("/addpost", (req, res) => {
     res.redirect("/forum");
   });
 });
+
 
 
 //get post as json, fetch in client
@@ -196,96 +295,77 @@ app.get("/getpost/:postId", (req, res) => {
 });
 
 
-// DELETE POST
-  app.delete("/getpost/:id/delete", (req, res) => {
-    const { id } = req.params;
-    try {
-      let sql = "DELETE FROM posts WHERE post_id = ?";
-  
-      db.query(sql, [id], (err, result) => {
-        if (err) {
-          res.status(500).json({
-            success: false,
-            response: "Could not delete post",
-            error: err.message,
-          });
-        } else if (result.affectedRows > 0) {
-          res.status(200).json({
-            success: true,
-            response: `Post with ID ${id} deleted successfully`,
-          });
-        } else {
-          res.status(404).json({
-            success: false,
-            response: `Post with ID ${id} not found in the database`,
-          });
-        }
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        response: "Internal server error",
-        error: error.message,
-      });
-    }
-  });
-  
-
-//go to specific post and comments - client
+// GET POST BY ID & ITS COMMENTS
 app.get("/viewpost/:postId", (req, res) => {
-  const postId = req.params.postId;
-  //console.log("Post ID:", postId);
+  const { postId } = req.params
 
-  const postSql =
-    "SELECT * FROM posts WHERE post_id = ?";
+  let postSql =
+    `SELECT * FROM posts WHERE post_id = ${postId}`;
 
-  const commentsSql =
-    "SELECT * FROM comments WHERE post_id = ?";
+  let commentsSql =
+    `SELECT * FROM comments WHERE post_id = ${postId}`;
 
   db.query(postSql, [postId], (err, posts) => {
     if (err) {
       console.error(err);
-      res.status(500).json({ error: "Server Error, viewpost" });
+      res.status(500).json({
+        success: false,
+        error: "Server Error"
+      });
+      return;
+    }
+
+    if (!posts || posts.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: ` No post with id ${postId} found`
+      });
       return;
     }
 
     db.query(commentsSql, [postId], (err, comments) => {
       if (err) {
         console.error(err);
-        res.status(500).json({ error: "Server Error, wievpost" });
+        res.status(500).json({
+          success: false,
+          error: "Server Error"
+        });
         return;
       }
 
-      const data = {
-        post: posts[0],
-        comments: comments,
-      };
-      res.sendFile(__dirname + "/viewpost.html", data);
+      const post = posts[0];
+      post.comments = comments;
+
+      // res.status(200).json({
+      //   success: true,
+      //   data: post 
+      //   // (comments --> to display only comments belonging to chosen post)
+      // });
+      res.sendFile(__dirname + "/viewpost.html", post);
     });
   });
 });
 
-// add comment - works!
-// error solved send-->json
+
+// ADD COMMENT 
 app.post("/addcomment", (req, res) => {
   try {
-    const { post_id, comment } = req.body;
+    const { post_id, comment, author } = req.body;
 
     const sql = `
-    INSERT INTO comments (post_id, comment)
-    VALUES ('${req.body.post_id}', '${req.body.comment}')`
+    INSERT INTO comments (post_id, comment, author)
+    VALUES ('${req.body.post_id}', '${req.body.comment}', '${req.body.author}')`
 
-    db.query(sql, [post_id, comment], (err, result, fields) => {
+    db.query(sql, [post_id, comment, author], (err, result, fields) => {
       if (err) {
-        //console.error("SQL error:", sql, err);
-        res.status(500).json({ sucess:"Server Error 1"});
+        res.status(500).json({ sucess: "Server Error 1" });
         return;
       }
       res.json({ success: true });
-     
+
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({sucess:"Server Error 2"});
+    res.status(500).json({ sucess: "Server Error 2" });
   }
 });

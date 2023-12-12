@@ -10,24 +10,21 @@
 
 <body>
   <h3>Already a user</h3>
-  <form id="login-form" action="/userlogin" method="post">
+  <form id="login-form" action="/login" method="post">
     <label for="name">name:</label>
-    <input type="text" id="name" name="name" placeholder="name" required /><br />
+    <input type="text" id="name" name="name" placeholder="name"  /><br />
 
     <label for="username">Username:</label>
-    <input type="text" id="username" name="username" placeholder="username" required /><br />
+    <input type="text" id="username" name="username" placeholder="username"  /><br />
 
     <label for="password">Password:</label>
-    <input type="password" id="password" name="password" placeholder="password" required /><br />
-
-    <label for="email">email:</label>
-    <input type="email" id="email" name="email" placeholder="email" required /><br />
+    <input type="password" id="password" name="password" placeholder="password"  /><br />
 
     <button type="submit">Login</button>
    
   </form>
  
-  <a class="go-to-loggin" href="http://localhost:8080/">Not a user yet? Loggin  here</a>
+  <a class="go-to-loggin" href="http://localhost:8080/login-new-user">Not a user yet? Loggin  here</a>
 </body>
 
 </html>

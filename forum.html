@@ -1,19 +1,25 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Forum_page</title>
-<link rel="stylesheet" type="text/css" href="/styles.css">
-
+  <link rel="stylesheet" type="text/css" href="/styles.css">
 </head>
-
 <body>
+
   <section class="forum-section">
-    <h3>Welcomne to Forum</h3>
+    <h3 id="welcome-message">Welcome to forum!</h3>
+    <br>
+    <p>
+      Here you can see what topics there are so far. 
+      You can create a new post by fill in your name, title and content.
+      To read a post's content or send a comment - click read more!
+    </p>
+
     <!-- Form create new post -->
     <form class="new-post-form" id="new-post-form" action="/addpost" method="post">
+      <input type="text" name="author" placeholder="Your Name" required />
       <input type="text" name="heading" placeholder="Title" required />
       <textarea name="body" placeholder="Content" required></textarea>
       <button type="submit">Create Post</button>
@@ -25,6 +31,7 @@
   </section>
 
   <script>
+
     // redirect to the view post page
     function viewPost(postId) {
       window.location.href = `/viewpost/${postId}`;
@@ -39,11 +46,9 @@
           posts.forEach((post) => {
             const postElement = document.createElement("div");
             postElement.innerHTML = `
+            Author:${post.author}<br>
             <strong>${post.heading}</strong><br>
-             
               Created at: ${new Date(post.created_at).toLocaleString()}<br>
-
-              <!-- Button view the full post, but does not work for now -->
               <button onclick="viewPost(${post.post_id})">Read more</button>
               <hr>
             `;
@@ -53,5 +58,4 @@
     });
   </script>
 </body>
-
 </html>

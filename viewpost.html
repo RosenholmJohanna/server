@@ -13,6 +13,7 @@
     <a class="go-to-forum" href="http://localhost:8080/forum"><button id="go-back-btn">Back to forum</button></a>
     <h3>Create comment</h3>
     <form class="add-comment-form" id="add-comment-form" action="/addcomment" method="post">
+      <input type="text" id="author" name="author" placeholder="Your Name" required />
       <input type="hidden" id="post_id" name="post_id" value="${post.post_id}" />
       <textarea id="comment" name="comment" placeholder="Add a comment" required></textarea>
       <button type="click" onclick="handleComentForm()">Add Comment</button>
@@ -32,39 +33,41 @@
   <script>
 
     document.addEventListener("DOMContentLoaded", function () {
-    const post_id = parseInt(window.location.pathname.split("/")[2]);
+      const post_id = parseInt(window.location.pathname.split("/")[2]);
 
-    fetch(`/getpost/${post_id}`)
-      .then((response) => response.json())
-      .then((post) => {
-        const specificPostContainer = document.getElementById(
-          "specific-post-container"
-        );
-        const postElement = document.createElement("div");
-        postElement.innerHTML = `
+      fetch(`/getpost/${post_id}`)
+        .then((response) => response.json())
+        .then((post) => {
+          const specificPostContainer = document.getElementById(
+            "specific-post-container"
+          );
+          const postElement = document.createElement("div");
+          postElement.innerHTML = `
+            Author:${post.author}<br>
             <strong>${post.heading}</strong><br>
             ${post.body}<br>
             Created at: ${new Date(post.created_at).toLocaleString()}<br>
             <h4>Comments:</h4>
           `;
-        specificPostContainer.appendChild(postElement);
+          specificPostContainer.appendChild(postElement);
 
-        // Display comments if there are any yet
-        const commentsContainer =
-          document.getElementById("comments-container");
-        if (post.comments.length > 0) {
-          post.comments.forEach((comment) => {
-            const commentElement = document.createElement("div");
-            commentElement.innerHTML = `
+          // Display comments if there are any yet
+          const commentsContainer =
+            document.getElementById("comments-container");
+          if (post.comments.length > 0) {
+            post.comments.forEach((comment) => {
+              const commentElement = document.createElement("div");
+              commentElement.innerHTML = `
+            ${comment.author}<br>
                 ${comment.comment}<br>
                 Created at: ${new Date(comment.created_at).toLocaleString()}<br>
               `;
-            commentsContainer.appendChild(commentElement);
-          });
-        } else {
-          commentsContainer.innerHTML = "No comments yet...";
-        }
-      });
+              commentsContainer.appendChild(commentElement);
+            });
+          } else {
+            commentsContainer.innerHTML = "No comments yet...";
+          }
+        });
     });
 
 
@@ -80,26 +83,33 @@
     function addComment() {
       const post_id = window.location.pathname.split("/")[2];
       const comment = document.getElementById("comment").value;
+      const author = document.getElementById("author").value;
+
+      console.log('Adding Comment:', { post_id, comment, author });
 
       fetch("/addcomment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ post_id, comment }),
+        body: JSON.stringify({ post_id, comment, author }),
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            console.log("data", data);
+            console.log("Comment added successfully:", data);
             window.location.reload();
+          } else {
+            console.error("Error adding comment:", data.error);
           }
         })
         .catch((error) => {
           console.error("Error adding comment:", error);
         });
     }
+
   </script>
 
 </body>
+
 </html>
